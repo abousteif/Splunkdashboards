@@ -1,0 +1,456 @@
+<form version="1.1" theme="dark">
+  <label>Node detail</label>
+  <description>Total Connection detail</description>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="time" token="time1">
+      <label>Period</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="ipToken">
+      <label>Host in question</label>
+      <fieldForLabel>src_ip</fieldForLabel>
+      <fieldForValue>id.orig_h</fieldForValue>
+      <search>
+        <query>eventtype=corelight_idx id.orig_h IN (10.0.0.0/8,172.16.0.0/12,192.168.0.0/16)
+| dedup id.orig_h 
+| table id.orig_h 
+| sort - id.orig_h</query>
+        <earliest>$time1.earliest$</earliest>
+        <latest>$time1.latest$</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Total bytes moved</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx id.orig_h=$ipToken$ 
+   NOT id.resp_p IN (0)
+| table id.orig_h id.orig_p id.resp_h id.resp_p orig_bytes resp_bytes 
+| eval tot = orig_bytes + resp_bytes 
+| stats sum(tot) as total_MB 
+| where total_MB&gt; 0 
+| eval total_MB=round(((total_MB/1024)/1024),5) 
+| sort - total_MB</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.0</option>
+        <option name="rangeColors">["0x53a051","0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0,1024]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">MB</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Bytes in</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx id.orig_h=$ipToken$ 
+   NOT id.resp_p IN (0)
+| table id.orig_h id.orig_p id.resp_h id.resp_p orig_bytes resp_bytes 
+| stats sum(resp_bytes) as incoming_MB 
+| where incoming_MB&gt; 0 
+| eval incoming_MB=round(((incoming_MB/1024)/1024),5) 
+| sort - incoming_MB</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">MB</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Bytes out</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx id.orig_h=$ipToken$ 
+   NOT id.resp_p IN (0)
+| table id.orig_h id.orig_p id.resp_h id.resp_p orig_bytes resp_bytes 
+| stats sum(orig_bytes) as outgoing_MB 
+| where outgoing_MB&gt; 0 
+| eval outgoing_MB=round(((outgoing_MB/1024)/1024),5) 
+| sort - outgoing_MB</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="rangeColors">["0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unit">MB</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    ##
+      <row>
+    <panel>
+      <title>Host info</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx sourcetype IN ("corelight_conn") id.orig_h=$ipToken$ 
+| | stats count by orig_l2_addr id.orig_h_name.vals{} | table orig_l2_addr id.orig_h_name.vals{} </query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="rangeColors">["0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+      </row>
+    ##
+    <panel>
+      <title>SSH Session (External)</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx sourcetype IN ("corelight_ssh") id.orig_h=$ipToken$ 
+| stats count</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="rangeColors">["0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>FTP Session (External)</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx NOT id.resp_h IN (10.0.0.0/8,f*,224.0.0.*,169.254.255.255, 172.16.0.0/12,192.168.0.0/16) dest_port IN (20,21)
+
+| fillnull value=unknown 
+| search provider=unknown 
+| dedup id.resp_h 
+| stats count</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="rangeColors">["0x555","0xf1813f"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unitPosition">before</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>DNS over TLS</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn"  id.orig_h=$ipToken$   id.resp_p IN (853) 
+| stats count</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="rangeColors">["0x555","0xf8be34"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unitPosition">before</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+    <panel>
+      <title>DNS over HTTPS</title>
+      <single>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn"  id.orig_h=$ipToken$   id.resp_p IN (443) id.resp_h=8.8.4.4 
+| stats count</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="drilldown">all</option>
+        <option name="height">50</option>
+        <option name="rangeColors">["0x555","0x006d9c"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="unitPosition">before</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Connection Trend [Overall]: 2 weeks</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) earliest=-14d@d latest=-0d@d 
+| timechart span=1d count as total 
+| timewrap 1w 
+| rename total_latest_week as last_week total_1week_before as week_before</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Connection Trend [DNS]: 2 weeks</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_dns" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) earliest=-14d@d latest=-0d@d 
+| timechart span=1d count as total 
+| timewrap 1w| rename total_latest_week as last_week total_1week_before as week_before</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Connection Trend [SSL] : 2 weeks</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_ssl" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) earliest=-14d@d latest=-0d@d 
+| timechart span=1d count as total 
+| timewrap 1w | rename total_latest_week as last_week total_1week_before as week_before</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Applications in use</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn" id.orig_h=$ipToken$ 
+| stats count by app{}</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Endpoint Zeek Log  Distribution</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) NOT sourcetype IN (corelight_conn)
+| stats count by sourcetype</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>MIME Type Distribution</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_files" NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) rx_hosts{}=$ipToken$ 
+| table _time rx_hosts mime_type conn_uids* fuid md5 | stats count by mime_type</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Endpoint Traffic Distribution [outgoing]</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx id.orig_h=$ipToken$  
+   NOT id.resp_p IN (0) NOT id.resp_h IN (10.0.0.0/8) 
+| table id.orig_h id.orig_p id.resp_h id.resp_p orig_bytes resp_bytes 
+| eval tot = orig_bytes + resp_bytes 
+| stats sum(tot) as total_MB by id.resp_p 
+| where total_MB&gt; 0 
+| eval total_MB=round(((total_MB/1024)/1024),5) 
+| sort - total_MB</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Outgoing connection [Geolocation]</title>
+      <map>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) 
+| iplocation id.resp_h 
+| geostats latfield=lat longfield=lon count by Country</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="mapping.type">marker</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </map>
+    </panel>
+    <panel>
+      <title>Geo-location [ CERT : Self-signed, Expired]</title>
+      <map>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_ssl" id.orig_h=$ipToken$ validation_status IN ("self signed certificate","certificate has expired") 
+| iplocation dest_ip 
+| geostats count by Country</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="mapping.type">marker</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </map>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>DNS Query Request</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_dns"  id.orig_h=$ipToken$ 
+| stats count by qtype_name</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>DNS Query Resposne</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_dns"  id.orig_h=$ipToken$ 
+| stats count by rcode_name</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Bandwidth usage [internet download]</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) 
+| fillnull value="-" 
+| table id.orig_h id.orig_p id.resp_h id.resp_p duration uid orig_ip_bytes resp_ip_bytes protocol app service 
+| stats sum(resp_ip_bytes) as total_in_MB by id.resp_p 
+| eval total_in_MB = round((total_in_MB/1024)/1024,2) 
+| where total_in_MB&gt;0</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Bandwidth usage [internet upload]</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_conn" id.orig_h=$ipToken$ NOT id.resp_h IN (224.0.0.*,169.254.255.255,239.255.255.250) 
+| fillnull value="-" 
+| table id.orig_h id.orig_p id.resp_h id.resp_p duration uid orig_ip_bytes resp_ip_bytes protocol app service 
+| stats sum(orig_ip_bytes) as total_in_MB by id.resp_p 
+| eval total_in_MB = round((total_in_MB/1024)/1024,2) 
+| where total_in_MB&gt;0</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>User-Agents Distribution</title>
+      <chart>
+        <search>
+          <query>eventtype=corelight_idx sourcetype="corelight_http" id.orig_h=$ipToken$ 
+| stats count by user_agent</query>
+          <earliest>$time1.earliest$</earliest>
+          <latest>$time1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.chart">pie</option>
+        <option name="charting.drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+</form>
